@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Per-user leads subcollection:
+    // Only the authenticated user matching {userId} can read, list, create, update, and delete their own leads.
+    match /users/{userId}/leads/{leadId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // User settings / profile document (if used)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
